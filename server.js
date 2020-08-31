@@ -17,7 +17,6 @@ const verifyOTP = (token, secret) => authenticator.verify({token, secret});
 const generateJWTToken = (authData) => jwt.sign(authData, ACCESS_TOKEN_SECRET, {expiresIn: '15m'});
 
 const testSecret = generateOTPSecret();
-console.log('test secret ' + testSecret);
 //MiddleWare 
 const authenticateJWT = (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -161,8 +160,8 @@ app.post('/verifyOtp', (req, res) => {
     if (authData) {
         let jwtToken = generateJWTToken(authData);
         const refreshJWTToken = jwt.sign(authData, REFRESH_TOKEN_SECRET);
+
         // TO DO : ADD REFRESH TOKEN INTO DB
-    
         return res.status(200).send({
             token: jwtToken,
             refreshToken: refreshJWTToken
@@ -179,7 +178,9 @@ app.post('/registerUser', (req, res) => {
 });
 
 app.post('/nonLoggedInUser', (req, res) => {
-    //check to see if it is an existing note
+    // TO DO check to see if it is an existing CUSIP 
+    let cusip = req.body.cusip; 
+
     //SPIT BACK JWT 
 });
 
