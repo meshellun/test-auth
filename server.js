@@ -3,7 +3,10 @@ const express = require("express");
 const app = express();
 const path = require("path");
 const bodyParser = require('body-parser');
-const{ authenticator} = require('otplib');
+const otplib = require('otplib');
+const authenticator = otplib.authenticator;
+const totpOptions = otplib.totp.allOptions();
+let totp = otplib.totp.create({...totpOptions, step: 120});
 const SDK = require('@ringcentral/sdk').SDK;
 const nodemailer = require("nodemailer");
 const jwt = require('jsonwebtoken');
@@ -11,9 +14,11 @@ const sanitizeEmail = require('sanitize-mail');
 const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_TOKEN_SECRET;
 
+console.log(totp.options);
+console.log(totp.timeRemaining());
 const generateOTPSecret = () => authenticator.generateSecret();
-const generateOTPToken = (secret) => authenticator.generate(secret);
-const verifyOTP = (token, secret) => authenticator.verify({token, secret});
+const generateOTPToken = (secret) => totp.generate(secret);
+const verifyOTP = (token, secret) => totp.verify({token, secret});
 const generateJWTToken = (authData) => jwt.sign(authData, ACCESS_TOKEN_SECRET, {expiresIn: '15m'});
 
 const testSecret = generateOTPSecret();
