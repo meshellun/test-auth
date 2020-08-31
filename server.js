@@ -82,6 +82,7 @@ app.post('/login', (req, res) => {
     const phone = req.body.phone;
     const username = sanitizeEmail(req.body.email);
     //Find PayerUser BY Email or Phone => return authData
+
     /* MDY114 FOR TESTING ONLY */
     let authData; // {
     if (phone === process.env.TEST_PHONE || username === process.env.TEST_EMAIL) {
@@ -90,6 +91,7 @@ app.post('/login', (req, res) => {
             userOtpSecret : testSecret
         };
     }
+    /*                     */
 
   if (authData == null) {
       return res.status(401);
@@ -136,19 +138,19 @@ app.post('/verifyOtp', (req, res) => {
     // FIND USER BY PHONENUMBER OR EMAIL
     let user;
     let authData;
+
     /*MDY114 FOR TESTING */
     if (phone === process.env.TEST_PHONE || username === process.env.TEST_EMAIL) {
         user = {
             Id: 'testSFId', 
             otpSecret: testSecret
-        };
-        console.log(user.otpSecret);
-    
+        };    
         authData = {
             payerUserSFId: user.Id,
             userOtpSecret: user.otpSecret
         };
     }
+    /*    */
 
     let isValidOTP = user.otpSecret && verifyOTP(otpToken, user.otpSecret);
 
