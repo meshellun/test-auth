@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const otplib = require('otplib');
 const authenticatorOptions = otplib.authenticator.allOptions();
 console.log(authenticatorOptions);
-let authenticator = otplib.authenticator.create({...authenticatorOptions, step: 120});
+let authenticator = otplib.authenticator;
 const SDK = require('@ringcentral/sdk').SDK;
 const nodemailer = require("nodemailer");
 const jwt = require('jsonwebtoken');
@@ -17,12 +17,14 @@ const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_TOKEN_SECRET;
 console.log(authenticator.options);
 console.log(authenticator.timeRemaining());
 const generateOTPSecret = () => authenticator.generateSecret();
-const generateOTPToken = (secret) => authenticator.generate(secret);
+const generateOTPToken = (secret) => {
+   return authenticator.generate(secret);
+};
 const verifyOTP = (token, secret) => authenticator.verify({token, secret});
 const generateJWTToken = (authData) => jwt.sign(authData, ACCESS_TOKEN_SECRET, {expiresIn: '15m'});
 
 const testSecret = generateOTPSecret();
-//MiddleWare 
+//MiddleWare Use Could use this for Routes for api calls
 const authenticateJWT = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const jwtToken = authHeader && authHeader.split(' ')[1];
@@ -143,6 +145,7 @@ app.post('/verifyOtp', (req, res) => {
     let user;
     let authData;
     console.log(authenticator.timeRemaining());
+    console.log(authenticator.timeUsed());
 
     /*MDY114 FOR TESTING */
     if (phone === process.env.TEST_PHONE || username === process.env.TEST_EMAIL) {
@@ -165,13 +168,8 @@ app.post('/verifyOtp', (req, res) => {
 
     if (authData) {
         let jwtToken = generateJWTToken(authData);
-        const refreshJWTToken = jwt.sign(authData, REFRESH_TOKEN_SECRET);
 
-        // TO DO : ADD REFRESH TOKEN INTO DB
-        return res.status(200).send({
-            token: jwtToken,
-            refreshToken: refreshJWTToken
-        });
+        res.cookie('jwt', jwtToken, { httpOnly: true, secure: true });
     }
     res.end();
 
@@ -187,8 +185,14 @@ app.post('/nonLoggedInUser', (req, res) => {
     // TO DO check to see if it is an existing CUSIP 
     let cusip = req.body.cusip; 
 
+
     //SPIT BACK JWT 
 });
+
+//TO DO: ON LOGOUT REMOVE ACCESS TOKEN FROM DB OR WHEREVER IT IS SAVED AND REMOVE TOKEN
+app.post('logout', (req,res) => {
+    //remove JWT 
+})
 
 app.get("/", (req, res) => {
     res.json("hello world");
@@ -199,5 +203,3 @@ const port = process.env.PORT || 8000;
 app.listen(port, function () {
     console.log(`🌎 ==> Server now on port ${port}!`);
 });
-
-//TO DO: ON LOGOUT REMOVE ACCESS TOKEN FROM DB OR WHEREVER IT IS SAVED AND REMOVE TOKEN
