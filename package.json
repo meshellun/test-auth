@@ -1,0 +1,25 @@
+{
+  "name": "test-auth",
+  "version": "1.0.0",
+  "description": "Test Auth",
+  "main": "server.js",
+  "dependencies": {
+    "@ringcentral/sdk": "^4.3.2",
+    "body-parser": "^1.19.0",
+    "dotenv": "^8.2.0",
+    "ejs": "^3.1.5",
+    "express": "^4.17.1",
+    "express-session": "^1.17.1",
+    "jsonwebtoken": "^8.5.1",
+    "nodemailer": "^6.4.11",
+    "otplib": "^12.0.1",
+    "path": "^0.12.7",
+    "sanitize-mail": "^1.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
