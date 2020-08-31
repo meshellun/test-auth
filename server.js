@@ -84,7 +84,7 @@ app.post('/login', (req, res) => {
     //Find PayerUser BY Email or Phone => return authData
     /* MDY114 FOR TESTING ONLY */
     let authData; // {
-    if (phone === '5203705431' || username === 'myuen@midlandtrust.com') {
+    if (phone === process.env.TEST_PHONE || username === process.env.TEST_EMAIL) {
         authData = {
             payerUserSFId: 'testSFIDUser',
             userOtpSecret : testSecret
@@ -137,8 +137,8 @@ app.post('/verifyOtp', (req, res) => {
     let user;
     let authData;
     /*MDY114 FOR TESTING */
-    if (phone === '5203705431' || email === 'myuen@midlandtrust.com') {
-         user = {
+    if (phone === process.env.TEST_PHONE || username === process.env.TEST_EMAIL) {
+        user = {
             Id: 'testSFId', 
             otpSecret: testSecret
         };
