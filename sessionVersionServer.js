@@ -74,7 +74,6 @@ app.use(session({secret: process.env.SESSION_SECRET, resave: true,
 
 
 app.post('/login', (req, res) => {
-
     const phone = req.body.phone;
     const username = sanitizeEmail(req.body.email);
     //Find PayerUser BY Email or Phone => return payerUser
@@ -143,17 +142,16 @@ app.post('/verifyOtp', (req, res) => {
         };    
     }
     /*    */
+    if (!payerUser) return res.status(401).send('invalid user');
 
     let isValidOTP = payerUser.otpSecret && verifyOTP(otpToken, payerUser.otpSecret);
 
-    if (!isValidOTP) {
-     return res.status(401).send('invalid token');
-    }
+    if (!isValidOTP) return res.status(401).send('invalid token');
+    
 
-    if (user) {
-        let sessionId = uuidv4();
-        res.json({sessionId, userId: payerUser.Id});
-    }
+    let sessionId = uuidv4();
+    res.json({sessionId, userId: payerUser.Id});
+    
     res.end();
 
 });
