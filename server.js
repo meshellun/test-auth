@@ -205,23 +205,10 @@ app.post('/registerUser', (req, res) => {
     if (!payerUser) return res.status(401);
 
     const jwtToken = generateJWTToken(payerUser);
-    let authenticatedLink= `localhost:3000/?${jwtToken}`;
-    let mailOptions = {
-        from: process.env.SENDER_EMAIL,
-        to: email,
-        subject: 'Midland Payment Portal Registration',
-        text: `You have been registered! You can access portal using verification code ${tokenOTP}  or by going to this link ${authenticatedLink}`
-      };
-      
-      transporter.sendMail(mailOptions, function(error, info){
-        if (error) {
-          console.log(error);
-        } else {
-          console.log('Email sent: ' + info.response);
-        }
-        res.end();
-        });
-    return;
+    return res.status(200).send({	
+        token: jwtToken
+        // refreshToken: refreshJWTToken	
+    });
     
 });
 
