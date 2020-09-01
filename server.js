@@ -148,7 +148,7 @@ app.post('/login', (req, res) => {
 
 
 app.post('/verifyOtp', (req, res) => {
-    const otpToken = '' +req.body.otp;
+    const otpToken = req.body.otp;
     const phone = req.body.phone;
     const email = req.body.email;
     console.log(phone + ' ' + email);
@@ -212,7 +212,7 @@ app.post('/registerUser', (req, res) => {
     
 });
 
-app.post('/nonLoggedInUser', (req, res) => {
+app.post('/guestUser', (req, res) => {
     let assetName = req.body.assetName;
     // TO DO check to see if it is an existing CUSIP 
     let cusip = {
