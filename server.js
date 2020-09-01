@@ -10,6 +10,7 @@ const SDK = require('@ringcentral/sdk').SDK;
 const nodemailer = require("nodemailer");
 const jwt = require('jsonwebtoken');
 const sanitizeEmail = require('sanitize-mail');
+const jsforce = require('jsforce');
 // const csrf = require('csurf');
 const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_TOKEN_SECRET;
@@ -26,6 +27,7 @@ const verifyOTP = (token, secret) => authenticator.verify({token, secret});
 const generateJWTToken = (authData) => jwt.sign(authData, ACCESS_TOKEN_SECRET, {expiresIn: '60m'});
 
 const testSecret = generateOTPSecret();
+
 //MiddleWare Use Could use this for Authenticated Routes
 /*
 //eg of calling middleware
@@ -47,6 +49,19 @@ const authenticateJWT = (req, res, next) => {
     });
 };
 
+const sfConnection = new jsforce.Connection({
+    oauth2 : {
+        loginUrl: process.env.QA_LOGIN_URL,
+        clientId: process.env.QA_CLIENT_ID,
+        clientSecret: process.env.QA_CLIENT_SECRET
+    }
+});
+
+sfConnection.login(process.env.QA_USERNAME, process.env.QA_SECRET_PASSWORD, (err, userInfo) => {
+    if (err) console.log(err);
+    console.log("User ID: " + userInfo.id);
+    console.log("Org ID: " + userInfo.organizationId);
+});
 
 const rcsdk = new SDK({
     server: process.env.RING_CENTRAL_QA_SERVER,
@@ -60,13 +75,13 @@ platform.login({
     password: process.env.RING_CENTRAL_SECRET,
     extension: process.env.RING_CENTRAL_EXTENSION
     })
-    .then(function(resp) {
+.then(function(resp) {
         console.log(resp.body);
         console.log('Logged into Ring Central');
-    }).catch(err => {
-        console.log(err);
-        console.log(err.messageStatus);
-    });
+}).catch(err => {
+    console.log(err);
+    console.log(err.messageStatus);
+});
 
 function send_sms(recipient, token, res){
   platform.post('/restapi/v1.0/account/~/extension/~/sms', {
@@ -217,7 +232,7 @@ app.post('/guestUser', (req, res) => {
     // TO DO check to see if it is an existing CUSIP 
     let cusip = {
         salesforce_id: 'testCUSIPSFId', 
-    } 
+    };
 
     if (!cusip) {
         return res.status(401);

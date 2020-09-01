@@ -136,7 +136,7 @@ app.post('/verifyJWT', (req, res) => {
         // TO DO : STORE SESSION ON A DB 
         res.json({sessionId, userId: userData.Id});
     });
-})
+});
 
 
 app.post('/verifyOtp', (req, res) => {
@@ -209,7 +209,7 @@ app.post('/guestUser', (req, res) => {
     // TO DO check to see if it is an existing CUSIP
     let cusip = {
         salesforce_id: 'testCUSIPSFId', 
-    } 
+    };
 
     if (!cusip) {
         return res.status(401);
