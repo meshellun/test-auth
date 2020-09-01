@@ -131,7 +131,7 @@ app.post('/verifyJWT', (req, res) => {
     if (jwtToken == null) return res.status(401);
      
     jwt.verify(jwtToken, ACCESS_TOKEN_SECRET, (err, userData) => {
-        if (err) return res.send(403);
+        if (err) return res.sendStatus(403);
         let sessionId = uuidv4();
         // TO DO : STORE SESSION ON A DB 
         res.json({sessionId, userId: userData.Id});

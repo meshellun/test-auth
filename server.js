@@ -3,7 +3,7 @@ const express = require("express");
 const app = express();
 const path = require("path");
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
 const otplib = require('otplib');
 const authenticator = otplib.authenticator;
 const SDK = require('@ringcentral/sdk').SDK;
@@ -26,7 +26,13 @@ const verifyOTP = (token, secret) => authenticator.verify({token, secret});
 const generateJWTToken = (authData) => jwt.sign(authData, ACCESS_TOKEN_SECRET, {expiresIn: '60m'});
 
 const testSecret = generateOTPSecret();
-//MiddleWare Use Could use this for Routes for api calls
+//MiddleWare Use Could use this for Authenticated Routes
+/*
+//eg of calling middleware
+    app.post('/routeToAuthenticate', authenticateJWT,(req, res) => {
+
+    })
+*/
 const authenticateJWT = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const jwtToken = authHeader && authHeader.split(' ')[1];
@@ -35,7 +41,7 @@ const authenticateJWT = (req, res, next) => {
     }
 
     jwt.verify(jwtToken, ACCESS_TOKEN_SECRET, (err, authData) => {
-        if (err) return res.send(403);
+        if (err) return res.sendStatus(403);
         req.authData = authData;
         next();
     });
@@ -187,6 +193,35 @@ app.post('/verifyOtp', (req, res) => {
 
 
 app.post('/registerUser', (req, res) => {
+    let email = sanitizeMail(req.body.email);
+    let phone = req.body.phone;
+
+    // TO DO SAVE PAYER USER and return new user back 
+    let payerUser = {
+        Id: 'testSFIDUser',
+        otpSecret: testSecret
+    };
+
+    if (!payerUser) return res.status(401);
+
+    const jwtToken = generateJWTToken(payerUser);
+    let authenticatedLink= `localhost:3000/?${jwtToken}`;
+    let mailOptions = {
+        from: process.env.SENDER_EMAIL,
+        to: email,
+        subject: 'Midland Payment Portal Registration',
+        text: `You have been registered! You can access portal using verification code ${tokenOTP}  or by going to this link ${authenticatedLink}`
+      };
+      
+      transporter.sendMail(mailOptions, function(error, info){
+        if (error) {
+          console.log(error);
+        } else {
+          console.log('Email sent: ' + info.response);
+        }
+        res.end();
+        });
+    return;
     
 });
 
