@@ -107,7 +107,7 @@ app.post('/login', (req, res) => {
         let authenticatedLink= `localhost:3000/?${jwtToken}`;
         let mailOptions = {
             from: process.env.SENDER_EMAIL,
-            to: sendToEmail,
+            to: username,
             subject: 'Midland Payment Portal Login',
             text: `You can access portal using verification code ${tokenOTP}  or by going to this link ${authenticatedLink}`
           };
