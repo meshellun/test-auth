@@ -67,6 +67,7 @@ const transporter = nodemailer.createTransport({
     }
   });
 
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(session({secret: process.env.SESSION_SECRET, resave: true,
@@ -172,12 +173,40 @@ app.post('/verifyOtp', (req, res) => {
 
 
 app.post('/registerUser', (req, res) => {
-    
+    let email = sanitizeMail(req.body.email);
+    let phone = req.body.phone;
+
+    // TO DO SAVE PAYER USER and return new user back 
+    let payerUser = {
+        Id: 'testSFIDUser',
+        otpSecret: testSecret
+    };
+
+    if (!payerUser) return res.status(401);
+
+    const jwtToken = generateJWTToken(payerUser);
+    let authenticatedLink= `localhost:3000/?${jwtToken}`;
+    let mailOptions = {
+        from: process.env.SENDER_EMAIL,
+        to: email,
+        subject: 'Midland Payment Portal Registration',
+        text: `You have been registered! You can access portal using verification code ${tokenOTP}  or by going to this link ${authenticatedLink}`
+      };
+      
+      transporter.sendMail(mailOptions, function(error, info){
+        if (error) {
+          console.log(error);
+        } else {
+          console.log('Email sent: ' + info.response);
+        }
+        res.end();
+        });
+    return;
 });
 
 app.post('/guestUser', (req, res) => {
     let assetName = req.body.assetName;
-    // TO DO check to see if it is an existing CUSIP 
+    // TO DO check to see if it is an existing CUSIP
     let cusip = {
         salesforce_id: 'testCUSIPSFId', 
     } 
