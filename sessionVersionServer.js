@@ -124,6 +124,19 @@ app.post('/login', (req, res) => {
     }
 });
 
+//when coming from magic link use useEffect query urlParams ?jwtToken
+app.post('/verifyJWT', (req, res) => {
+    let jwtToken = req.body.jwtToken;
+    if (jwtToken == null) return res.status(401);
+     
+    jwt.verify(jwtToken, ACCESS_TOKEN_SECRET, (err, userData) => {
+        if (err) return res.send(403);
+        let sessionId = uuidv4();
+        // TO DO : STORE SESSION ON A DB 
+        res.json({sessionId, userId: userData.Id});
+    });
+})
+
 
 app.post('/verifyOtp', (req, res) => {
     const otpToken = '' +req.body.otp;
@@ -150,6 +163,7 @@ app.post('/verifyOtp', (req, res) => {
     
 
     let sessionId = uuidv4();
+    // TO DO : STORE SESSION ON A DB 
     res.json({sessionId, userId: payerUser.Id});
     
     res.end();
@@ -161,7 +175,7 @@ app.post('/registerUser', (req, res) => {
     
 });
 
-app.post('/nonLoggedInUser', (req, res) => {
+app.post('/guestUser', (req, res) => {
     let assetName = req.body.assetName;
     // TO DO check to see if it is an existing CUSIP 
     let cusip = {
@@ -176,6 +190,8 @@ app.post('/nonLoggedInUser', (req, res) => {
         sessionId, cusipId: cusip.salesforce_id
     });
 });
+
+
 
 
 app.get("/", (req, res) => {
