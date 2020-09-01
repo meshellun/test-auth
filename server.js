@@ -3,25 +3,27 @@ const express = require("express");
 const app = express();
 const path = require("path");
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const otplib = require('otplib');
-const authenticatorOptions = otplib.authenticator.allOptions();
-console.log(authenticatorOptions);
-let authenticator = otplib.authenticator;
+const authenticator = otplib.authenticator;
 const SDK = require('@ringcentral/sdk').SDK;
 const nodemailer = require("nodemailer");
 const jwt = require('jsonwebtoken');
 const sanitizeEmail = require('sanitize-mail');
+// const csrf = require('csurf');
 const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_TOKEN_SECRET;
 
-console.log(authenticator.options);
-console.log(authenticator.timeRemaining());
+authenticator.options = {
+    step: 120
+};
+
 const generateOTPSecret = () => authenticator.generateSecret();
 const generateOTPToken = (secret) => {
    return authenticator.generate(secret);
 };
 const verifyOTP = (token, secret) => authenticator.verify({token, secret});
-const generateJWTToken = (authData) => jwt.sign(authData, ACCESS_TOKEN_SECRET, {expiresIn: '15m'});
+const generateJWTToken = (authData) => jwt.sign(authData, ACCESS_TOKEN_SECRET, {expiresIn: '60m'});
 
 const testSecret = generateOTPSecret();
 //MiddleWare Use Could use this for Routes for api calls
@@ -38,6 +40,7 @@ const authenticateJWT = (req, res, next) => {
         next();
     });
 };
+
 
 const rcsdk = new SDK({
     server: process.env.RING_CENTRAL_QA_SERVER,
@@ -82,6 +85,8 @@ const transporter = nodemailer.createTransport({
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
+// app.use(cookieParser());
+// app.use(csrfProtection);
 
 app.post('/login', (req, res) => {
 
@@ -168,31 +173,44 @@ app.post('/verifyOtp', (req, res) => {
 
     if (authData) {
         let jwtToken = generateJWTToken(authData);
+        // let refreshJWTToken = jwt.sign()
 
-        res.cookie('jwt', jwtToken, { httpOnly: true, secure: true });
+        // res.cookie('jwt', jwtToken, { httpOnly: true, secure: true });
+        return res.status(200).send({	
+            token: jwtToken,	
+            // refreshToken: refreshJWTToken	
+        });
     }
     res.end();
 
 });
 
 
-
 app.post('/registerUser', (req, res) => {
-
+    
 });
 
 app.post('/nonLoggedInUser', (req, res) => {
+    let assetName = req.body.assetName;
     // TO DO check to see if it is an existing CUSIP 
-    let cusip = req.body.cusip; 
+    let cusip = {
+        salesforce_id: 'testCUSIPSFId', 
+    } 
 
+    if (!cusip) {
+        return res.status(401);
+    }
 
-    //SPIT BACK JWT 
+    let jwtToken =generateJWTToken(cusip);
+    return res.status(200).send({	
+        token: jwtToken,	
+        // refreshToken: refreshJWTToken	
+    });
 });
 
-//TO DO: ON LOGOUT REMOVE ACCESS TOKEN FROM DB OR WHEREVER IT IS SAVED AND REMOVE TOKEN
-app.post('logout', (req,res) => {
-    //remove JWT 
-})
+// app.get('/csrf-token', (req, res) => {
+//     res.json({ csrfToken: req.csrfToken() });
+// });
 
 app.get("/", (req, res) => {
     res.json("hello world");
