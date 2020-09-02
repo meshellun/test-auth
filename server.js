@@ -175,7 +175,7 @@ app.post('/login', (req, res) => {
 app.post('/verifyOtp', (req, res) => {
     const otpToken = req.body.otp;
     const phone = req.body.phone;
-    const username = sanitizeMail(req.body.email);
+    const username = sanitizeEmail(req.body.email);
 
     let payerUser;
     let payerUserQuery = 'SELECT Id, OTPSecret__c FROM PayerUser__c WHERE';
@@ -223,7 +223,7 @@ app.post('/verifyOtp', (req, res) => {
 
 
 app.post('/registerUser', (req, res) => {
-    let email = sanitizeMail(req.body.email);
+    let email = sanitizeEmail(req.body.email);
     let phone = req.body.phone;
 
     // TO DO SAVE PAYER USER and return new user back 
