@@ -153,8 +153,8 @@ app.post('/verifyJWT', (req, res) => {
      
     jwt.verify(jwtToken, ACCESS_TOKEN_SECRET, (err, userData) => {
         if (err) return res.sendStatus(403);
-        let sessionId = uuidv4();
-        req.login(userData, (err) => {
+        let session_id = uuidv4();
+        req.login({...userData, session_id}, (err) => {
             console.log(err);
             res.redirect('/');
         });
@@ -194,12 +194,12 @@ app.post('/verifyOtp', (req, res) => {
             }
         
             if (payerUser) {
-                req.login(payerUser, (err) => {
+                let session_id = uuidv4();
+                req.login({...payerUser, session_id}, (err) => {
                     console.log(err);
                 });
-                let sessionId = uuidv4();
                 // TO DO : STORE SESSION ON A DB 
-                res.json({sessionId, userId: payerUser.Id});
+                res.json({session_id, userId: payerUser.Id});
             }
             res.end();
 
@@ -262,13 +262,11 @@ app.post('/guestUser', (req, res) => {
     if (!cusip) {
         return res.status(401);
     }
-    let sessionId = uuidv4();
+    let session_id = uuidv4();
     return res.status(200).send({	
-        sessionId, cusipId: cusip.salesforce_id
+        session_id, cusipId: cusip.salesforce_id
     });
 });
-
-
 
 
 app.get("/", (req, res) => {
@@ -278,12 +276,9 @@ app.get("/", (req, res) => {
 });
 
 passport.serializeUser((user, done) => {
-    done(null, user.Id);
+    done(null, user.session_id);
 });
 passport.deserializeUser((user, done) => {
-    // User.findById(id, (err, user) => {
-    //     done(err, user);
-    // });
     done(null, user);
 });
 const port = process.env.PORT || 8000;
