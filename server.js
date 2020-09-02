@@ -113,97 +113,112 @@ app.post('/login', (req, res) => {
 
     const phone = req.body.phone;
     const username = sanitizeEmail(req.body.email);
-    //Find PayerUser BY Email or Phone => return authData
-
-    /* MDY114 FOR TESTING ONLY */
-    let authData; // {
-    if (phone === process.env.TEST_PHONE || username === process.env.TEST_EMAIL) {
-        authData = {
-            payerUserSFId: 'testSFIDUser',
-            userOtpSecret : testSecret
-        };
+    if (!phone && !username) {
+        res.status(500).send('Phone and Username not entered');
     }
-    /*                     */
 
-  if (authData == null) {
-      return res.status(401);
-    }
-    
-    if (!authData.userOtpSecret){
-        authData.userOtpSecret = generateOTPSecret();
-    } 
-
-    let tokenOTP = generateOTPToken(authData.userOtpSecret);
-
+    let payerUser;
+    let payerUserQuery = 'SELECT Id, OTPSecret__c FROM PayerUser__c WHERE';
     if (phone) {
-        return send_sms(phone, tokenOTP, res);
+        payerUserQuery += ` Phone__c = '${phone}'`;
     }
-
+    if (phone && username) {
+        payerUserQuery += ' OR';
+    }
     if (username) {
-        const jwtToken = generateJWTToken(authData);
-        let authenticatedLink= `localhost:3000/?${jwtToken}`;
-        let mailOptions = {
-            from: process.env.SENDER_EMAIL,
-            to: username,
-            subject: 'Midland Payment Portal Login',
-            text: `You can access portal using verification code ${tokenOTP}  or by going to this link ${authenticatedLink}`
-          };
-          
-          transporter.sendMail(mailOptions, function(error, info){
-            if (error) {
-              console.log(error);
-            } else {
-              console.log('Email sent: ' + info.response);
-            }
-            res.end();
-            });
-        return;
+        payerUserQuery += ` Username__c= '${username}'`;
     }
+    const verifyUserAndSendToken = async () => {
+        try {
+            let payerUserQueryResult = await sfConnection.query(payerUserQuery);
+            if (payerUserQueryResult.records.length === 0 ) return res.status(401).send('User not found in our system');
+            payerUser = payerUserQueryResult.records[0];
+            if (!payerUser.OTPSecret__c){
+                payerUser.OTPSecret__c = generateOTPSecret();
+                await sfConnection.sobject("PayerUser__C").update(payerUser);
+            }
+            let tokenOTP = generateOTPToken(payerUser.OTPSecret__c);
+            if (phone) {
+                return send_sms(phone, tokenOTP, res);
+            }
+
+            if (username) {
+                const jwtToken = generateJWTToken(payerUser);
+                let authenticatedLink= `localhost:3000/?${jwtToken}`;
+                let mailOptions = {
+                    from: process.env.SENDER_EMAIL,
+                    to: username,
+                    subject: 'Midland Payment Portal Login',
+                    text: `You can access portal using verification code ${tokenOTP}  or by going to this link ${authenticatedLink}`
+                };
+                
+                transporter.sendMail(mailOptions, function(error, info){
+                    if (error) {
+                    console.log(error);
+                    } else {
+                    console.log('Email sent: ' + info.response);
+                    }
+                    res.end();
+                    });
+                return;
+            }
+
+        } catch(err){
+            console.log(err);
+        }
+        res.end();
+    };
+    verifyUserAndSendToken();
 });
 
 
 app.post('/verifyOtp', (req, res) => {
     const otpToken = req.body.otp;
     const phone = req.body.phone;
-    const email = req.body.email;
-    console.log(phone + ' ' + email);
-    // FIND USER BY PHONENUMBER OR EMAIL
-    let user;
-    let authData;
+    const username = sanitizeMail(req.body.email);
+
+    let payerUser;
+    let payerUserQuery = 'SELECT Id, OTPSecret__c FROM PayerUser__c WHERE';
+    if (phone) {
+        payerUserQuery += ` Phone__c = '${phone}'`;
+    }
+    if (phone && username) {
+        payerUserQuery += ' OR';
+    }
+    if (username) {
+        payerUserQuery += ` Username__c= '${username}'`;
+    }
     console.log(authenticator.timeRemaining());
     console.log(authenticator.timeUsed());
+    const verifyUserAndVerifyToken = async () => {
+        try {
+            let payerUserQueryResult = await sfConnection.query(payerUserQuery);
+            if (payerUserQueryResult.records.length === 0 ) return res.status(401).send('User not found in our system');
+            payerUser = payerUserQueryResult.records[0];
+            
+            let isValidOTP = payerUser.OTPSecret__c && verifyOTP(otpToken, payerUser.OTPSecret__c);
+            if (!isValidOTP) {
+             return res.status(401).send('invalid token');
+            }
+        
+            if (payerUser) {
+                let jwtToken = generateJWTToken(payerUser);
+                // let refreshJWTToken = jwt.sign()
+        
+                // res.cookie('jwt', jwtToken, { httpOnly: true, secure: true });
+                return res.status(200).send({	
+                    token: jwtToken,	
+                    // refreshToken: refreshJWTToken	
+                });
+            }
+            res.end();
 
-    /*MDY114 FOR TESTING */
-    if (phone === process.env.TEST_PHONE || username === process.env.TEST_EMAIL) {
-        user = {
-            Id: 'testSFId', 
-            otpSecret: testSecret
-        };    
-        authData = {
-            payerUserSFId: user.Id,
-            userOtpSecret: user.otpSecret
-        };
-    }
-    /*    */
-
-    let isValidOTP = user.otpSecret && verifyOTP(otpToken, user.otpSecret);
-
-    if (!isValidOTP) {
-     return res.status(401).send('invalid token');
-    }
-
-    if (authData) {
-        let jwtToken = generateJWTToken(authData);
-        // let refreshJWTToken = jwt.sign()
-
-        // res.cookie('jwt', jwtToken, { httpOnly: true, secure: true });
-        return res.status(200).send({	
-            token: jwtToken,	
-            // refreshToken: refreshJWTToken	
-        });
-    }
-    res.end();
-
+        } catch (err) {
+            console.log(err);
+            res.status(401).send('invalid token');
+        }
+    };
+    verifyUserAndVerifyToken();
 });
 
 
