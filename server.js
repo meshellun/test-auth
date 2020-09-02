@@ -11,6 +11,7 @@ const nodemailer = require("nodemailer");
 const jwt = require('jsonwebtoken');
 const sanitizeEmail = require('sanitize-mail');
 const jsforce = require('jsforce');
+//used for csrf protection
 // const csrf = require('csurf');
 const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_TOKEN_SECRET;
@@ -117,7 +118,6 @@ app.post('/login', (req, res) => {
         res.status(500).send('Phone and Username not entered');
     }
 
-    let payerUser;
     let payerUserQuery = 'SELECT Id, OTPSecret__c FROM PayerUser__c WHERE';
     if (phone) {
         payerUserQuery += ` Phone__c = '${phone}'`;
@@ -132,7 +132,7 @@ app.post('/login', (req, res) => {
         try {
             let payerUserQueryResult = await sfConnection.query(payerUserQuery);
             if (payerUserQueryResult.records.length === 0 ) return res.status(401).send('User not found in our system');
-            payerUser = payerUserQueryResult.records[0];
+            let payerUser = payerUserQueryResult.records[0];
             if (!payerUser.OTPSecret__c){
                 payerUser.OTPSecret__c = generateOTPSecret();
                 await sfConnection.sobject("PayerUser__C").update(payerUser);
@@ -177,24 +177,23 @@ app.post('/verifyOtp', (req, res) => {
     const phone = req.body.phone;
     const username = sanitizeEmail(req.body.email);
 
-    let payerUser;
-    let payerUserQuery = 'SELECT Id, OTPSecret__c FROM PayerUser__c WHERE';
-    if (phone) {
-        payerUserQuery += ` Phone__c = '${phone}'`;
-    }
-    if (phone && username) {
-        payerUserQuery += ' OR';
-    }
-    if (username) {
-        payerUserQuery += ` Username__c= '${username}'`;
-    }
     console.log(authenticator.timeRemaining());
     console.log(authenticator.timeUsed());
     const verifyUserAndVerifyToken = async () => {
         try {
+            let payerUserQuery = 'SELECT Id, OTPSecret__c FROM PayerUser__c WHERE';
+            if (phone) {
+                payerUserQuery += ` Phone__c = '${phone}'`;
+            }
+            if (phone && username) {
+                payerUserQuery += ' OR';
+            }
+            if (username) {
+                payerUserQuery += ` Username__c= '${username}'`;
+            }
             let payerUserQueryResult = await sfConnection.query(payerUserQuery);
             if (payerUserQueryResult.records.length === 0 ) return res.status(401).send('User not found in our system');
-            payerUser = payerUserQueryResult.records[0];
+            let payerUser = payerUserQueryResult.records[0];
             
             let isValidOTP = payerUser.OTPSecret__c && verifyOTP(otpToken, payerUser.OTPSecret__c);
             if (!isValidOTP) {
