@@ -8,6 +8,7 @@ const authenticator = otplib.authenticator;
 const SDK = require('@ringcentral/sdk').SDK;
 const nodemailer = require("nodemailer");
 const jwt = require('jsonwebtoken');
+const jsforce = require('jsforce');
 const sanitizeEmail = require('sanitize-mail');
 const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_TOKEN_SECRET;
 const { v4: uuidv4 } = require('uuid');
@@ -89,7 +90,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 
-app.post('/login', (req, res) => {
+app.post('/authenticateUser', (req, res) => {
     const phone = req.body.phone;
     const username = sanitizeEmail(req.body.email);
     let payerUserQuery = 'SELECT Id, OTPSecret__c FROM PayerUser__c WHERE';
@@ -153,6 +154,10 @@ app.post('/verifyJWT', (req, res) => {
     jwt.verify(jwtToken, ACCESS_TOKEN_SECRET, (err, userData) => {
         if (err) return res.sendStatus(403);
         let sessionId = uuidv4();
+        req.login(userData, (err) => {
+            console.log(err);
+            res.redirect('/');
+        });
         // TO DO : STORE SESSION ON A DB 
         res.json({sessionId, userId: userData.Id});
     });
@@ -189,6 +194,9 @@ app.post('/verifyOtp', (req, res) => {
             }
         
             if (payerUser) {
+                req.login(payerUser, (err) => {
+                    console.log(err);
+                });
                 let sessionId = uuidv4();
                 // TO DO : STORE SESSION ON A DB 
                 res.json({sessionId, userId: payerUser.Id});
@@ -264,9 +272,20 @@ app.post('/guestUser', (req, res) => {
 
 
 app.get("/", (req, res) => {
+    console.log(req.user);
+    console.log(req.isAuthenticated());
     res.json("hello world");
 });
 
+passport.serializeUser((user, done) => {
+    done(null, user.Id);
+});
+passport.deserializeUser((user, done) => {
+    // User.findById(id, (err, user) => {
+    //     done(err, user);
+    // });
+    done(null, user);
+});
 const port = process.env.PORT || 8000;
 
 app.listen(port, function () {
