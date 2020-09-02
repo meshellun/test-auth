@@ -14,6 +14,12 @@ const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_TOKEN_SECRET;
 const { v4: uuidv4 } = require('uuid');
 const session = require('express-session');
 const passport = require('passport');
+const pg = require('pg');
+const pgSession = require('connect-pg-simple')(session);
+const pgConnectionParams = 'postgresql://postgres:welcome@localhost';
+
+const pgClient  = new pg.Client(pgConnectionParams);
+pgClient.connect();
 
 authenticator.options = {
     step: 120
@@ -84,7 +90,13 @@ const transporter = nodemailer.createTransport({
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(session({secret: process.env.SESSION_SECRET, resave: true,
+app.use(session({
+    store: new pgSession({
+        tableName: 'user_session',
+        conString: pgConnectionParams
+    }),
+    secret: process.env.SESSION_SECRET, 
+    resave: true,
     saveUninitialized: true}));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -245,7 +257,7 @@ app.post('/registerUser', (req, res) => {
         } catch (err) {
             console.log(err);
         }
-    }
+    };
 
     if (!payerUser) return res.status(401);
     insertPayerUser();
@@ -268,6 +280,12 @@ app.post('/guestUser', (req, res) => {
     });
 });
 
+app.post('/signout', (req, res) => {
+    req.logout();
+    req.session.destroy();
+    res.status(200).send('successfully logged out');
+});
+
 
 app.get("/", (req, res) => {
     console.log(req.user);
@@ -276,13 +294,20 @@ app.get("/", (req, res) => {
 });
 
 passport.serializeUser((user, done) => {
-    done(null, user.session_id);
-});
-passport.deserializeUser((user, done) => {
     done(null, user);
+});
+passport.deserializeUser((session_id, done) => {
+    //WIP
+    done(null, session_id);
 });
 const port = process.env.PORT || 8000;
 
 app.listen(port, function () {
     console.log(`🌎 ==> Server now on port ${port}!`);
 });
+
+/* 
+    user (aka portal user) table
+    session_id | user_sf_id | cusip_sf_id 
+
+*/
