@@ -97,7 +97,12 @@ app.use(session({
     }),
     secret: process.env.SESSION_SECRET, 
     resave: true,
-    saveUninitialized: false}));
+    saveUninitialized: false,
+    cookie : {
+        /* MDY114 SET 60 SECOND EXPIRATION DATE FOR TESTING */
+        maxAge: 60 * 1000
+    }
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 
