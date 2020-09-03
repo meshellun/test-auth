@@ -166,12 +166,16 @@ app.post('/verifyJWT', (req, res) => {
     jwt.verify(jwtToken, ACCESS_TOKEN_SECRET, (err, userData) => {
         if (err) return res.sendStatus(403);
         let session_id = uuidv4();
-        req.login({...userData, session_id}, (err) => {
+        pgClient.query(`INSERT INTO payer_user (session_id, user_sf_id) VALUES ${session_id}, ${userData.Id}`).then(() => {
+            req.login({...userData, session_id}, (err) => {
+                console.log(err);
+                res.redirect('/');
+            });
+            res.json({session_id, user_sf_Id: userData.Id});
+        }).catch(err => {
             console.log(err);
-            res.redirect('/');
+            res.status(401).send('Error verifying magic link');
         });
-        // TO DO : STORE SESSION ON A DB 
-        res.json({sessionId, userId: userData.Id});
     });
 });
 
@@ -207,11 +211,16 @@ app.post('/verifyOtp', (req, res) => {
         
             if (payerUser) {
                 let session_id = uuidv4();
-                req.login({...payerUser, session_id}, (err) => {
+                pgClient.query(`INSERT INTO payer_user (session_id, user_sf_id) VALUES ${session_id}, ${payerUser.Id}`).then(() => {
+                    req.login({...payerUser, session_id}, (err) => {
+                        console.log(err);
+                        res.redirect('/');
+                    });
+                    res.json({session_id, userId: payerUser.Id});
+                }).catch(err => {
                     console.log(err);
+                    res.status(401).send('Error verifying magic link');
                 });
-                // TO DO : STORE SESSION ON A DB 
-                res.json({session_id, userId: payerUser.Id});
             }
             res.end();
 
@@ -297,7 +306,15 @@ passport.serializeUser((user, done) => {
     done(null, user);
 });
 passport.deserializeUser((session_id, done) => {
-    //WIP
+    // pgClient.query(`SELECT * FROM payer_user WHERE session_id = ${session_id}`, (err, result) => {
+    //     console.log(result);
+    //     console.log(err);
+    //     let user; 
+    //     // if (result && result.rowCount > 0) {
+    //     //     user = result.rows[0];
+    //     // }
+    //     done(err, session_id);
+    // })
     done(null, session_id);
 });
 const port = process.env.PORT || 8000;
@@ -307,7 +324,7 @@ app.listen(port, function () {
 });
 
 /* 
-    user (aka portal user) table
-    session_id | user_sf_id | cusip_sf_id 
-
+    payer_user (aka payment portal user) table
+    session_id | user_sf_id                                    | cusip_sf_id
+    uuid       | if logged in user not null , null otherwise   | if guest user not null, null oherwise
 */
