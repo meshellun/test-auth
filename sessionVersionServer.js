@@ -15,7 +15,6 @@ const { v4: uuidv4 } = require('uuid');
 const session = require('express-session');
 const passport = require('passport');
 const pg = require('pg');
-const { nextTick } = require("process");
 const pgSession = require('connect-pg-simple')(session);
 const pgConnectionParams = 'postgresql://postgres:welcome@localhost';
 
@@ -164,7 +163,6 @@ app.post('/authenticateUser', (req, res) => {
     verifyUserAndSendToken();
 });
 
-//when coming from magic link use useEffect query urlParams ?jwtToken
 app.post('/verifyJWT', (req, res) => {
     let jwtToken = req.body.jwtToken;
     if (jwtToken == null) return res.status(401);
@@ -234,7 +232,7 @@ app.post('/verifyOtp', (req, res) => {
                     regenerateAndSaveSession().then(() => {
                         req.login({...payerUser, session_id}, function(err) {
                             if (err) { return res.status(401).send(err);}
-                            res.send({...payerUser, session_id});
+                            res.send( session_id);
                         });
                     })
                 }).catch(err => {
@@ -314,18 +312,23 @@ app.post('/signout', (req, res) => {
     res.status(200).send('successfully logged out');
 });
 
+passport.serializeUser((user, done) => {
+    done(null, user.session_id);
+});
+passport.deserializeUser((session_id, done) => {
+    console.log(session_id);
+    pgClient.query(`SELECT * FROM payer_user WHERE session_id = '${session_id}'`).then((result) => {
+        console.log(result);
+        done(null, result.rows[0]);
+    }).catch(err => {
+        done(err, false);
+    })
+});
 
 app.get("/", (req, res) => {
     console.log(req.user);
     console.log(req.isAuthenticated());
     res.json("hello world");
-});
-
-passport.serializeUser((user, done) => {
-    done(null, user);
-});
-passport.deserializeUser((user, done) => {
-    done(null, user);
 });
 const port = process.env.PORT || 8000;
 
@@ -336,6 +339,6 @@ app.listen(port, function () {
 
 /* 
     payer_user (aka payment portal user) table
-    session_id | user_sf_id                                    | cusip_sf_id
+    id         | user_sf_id                                    | cusip_sf_id
     uuid       | if logged in user not null , null otherwise   | if guest user not null, null oherwise
 */
