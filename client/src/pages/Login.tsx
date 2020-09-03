@@ -4,11 +4,12 @@ import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 
 
-const Login : React.FC = () => {
+const Login : React.FC<{setIsAuth: Function}> = ({setIsAuth}) => {
     const usernameRef = useRef<HTMLIonInputElement>(null);
     const phoneRef = useRef<HTMLIonInputElement>(null);
     const tokenRef = useRef<HTMLIonInputElement>(null);
     const [showModal, setShowModal] = useState<boolean>(false);
+    const [showError, setShowError] = useState<boolean>(false);
     const history = useHistory();
 
     const login = () => {
@@ -20,6 +21,7 @@ const Login : React.FC = () => {
             setShowModal(true);
         }).catch((err) => {
             console.log(err);
+            setShowError(true);
         })
     }
 
@@ -33,11 +35,13 @@ const Login : React.FC = () => {
             username
         }).then(() => {
             console.log('verified user!');
+            setIsAuth(true);
             setShowModal(false);
             history.push('/');
         }).catch(err => {
             console.log(err);
             console.log('CANNOT LOGIN!');
+            setShowModal(false);
         })
     }
 
@@ -81,7 +85,7 @@ const Login : React.FC = () => {
                 </IonRow>
                 <IonButton onClick={login}> Login </IonButton>
             </IonGrid>
-
+            {showError && <h2> ERROR WITH YOUR TOKEN OR LOGGING IN </h2>}
         </IonContent>
         </IonPage>
     )

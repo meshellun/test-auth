@@ -225,17 +225,8 @@ app.post('/verifyOtp', (req, res) => {
                 console.log(payerUser);
                 console.log('session_id ' + session_id);
                 pgClient.query(`INSERT INTO payer_user(session_id, user_sf_id) VALUES ('${session_id}', '${payerUser.Id}')`).then((result) => {
-                    const regenerateAndSaveSession = async () => {
-                        await req.session.regenerate((err) => {
-                            if (err) res.status(401).send(err);
-                        });
-
-                        await req.session.save((err) => {
-                            if (err) res.status(401).send(err);
-                        });
-                    };
                     console.log(result);
-                    regenerateAndSaveSession().then(() => {
+                    regenerateAndSaveSession(req, res).then(() => {
                         req.login({...payerUser, session_id}, function(err) {
                             if (err) { return res.status(401).send(err);}
                             res.send( session_id);
@@ -358,6 +349,17 @@ const port = process.env.PORT || 8000;
 app.listen(port, function () {
     console.log(`🌎 ==> Server now on port ${port}!`);
 });
+
+// HELPERS 
+const regenerateAndSaveSession = async (req, res) => {
+    await req.session.regenerate((err) => {
+        if (err) res.status(401).send(err);
+    });
+
+    await req.session.save((err) => {
+        if (err) res.status(401).send(err);
+    });
+};
 
 /* 
     payer_user (aka payment portal user) table

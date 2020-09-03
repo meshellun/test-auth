@@ -1,21 +1,30 @@
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
-import React from 'react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton } from '@ionic/react';
+import React, {useEffect} from 'react';
+import {useLocation } from 'react-router-dom';
 import './Home.css';
 
-const Home: React.FC = () => {
+const Home: React.FC<{isAuth: boolean}> = ({isAuth}) => {
+  const location = useLocation();
+  console.log(location);
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Blank</IonTitle>
+          <IonTitle>{isAuth ? 'Logged In' : 'Not Logged In'}</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen>
         <IonHeader collapse="condense">
           <IonToolbar>
-            <IonTitle size="large">Blank</IonTitle>
+            <IonTitle size="large">{isAuth ? 'Logged In' : 'Not Logged In'}</IonTitle>
           </IonToolbar>
         </IonHeader>
+        TEST 
+        {isAuth ? 'HELLO LOGGED IN USER' : (
+          <IonButton routerLink='/login'>
+            LOGIN HERE! 
+          </IonButton>
+        )}
       </IonContent>
     </IonPage>
   );
