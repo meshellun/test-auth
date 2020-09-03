@@ -97,7 +97,7 @@ app.use(session({
     }),
     secret: process.env.SESSION_SECRET, 
     resave: true,
-    saveUninitialized: true}));
+    saveUninitialized: false}));
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -166,7 +166,7 @@ app.post('/verifyJWT', (req, res) => {
     jwt.verify(jwtToken, ACCESS_TOKEN_SECRET, (err, userData) => {
         if (err) return res.sendStatus(403);
         let session_id = uuidv4();
-        pgClient.query(`INSERT INTO payer_user (session_id, user_sf_id) VALUES ${session_id}, ${userData.Id}`).then(() => {
+        pgClient.query(`INSERT INTO payer_user(session_id, user_sf_id) VALUES (${session_id}, ${userData.Id})`).then((result) => {
             req.login({...userData, session_id}, (err) => {
                 console.log(err);
                 res.redirect('/');
@@ -211,12 +211,14 @@ app.post('/verifyOtp', (req, res) => {
         
             if (payerUser) {
                 let session_id = uuidv4();
-                pgClient.query(`INSERT INTO payer_user (session_id, user_sf_id) VALUES ${session_id}, ${payerUser.Id}`).then(() => {
+                console.log(payerUser);
+                console.log('session_id ' + session_id);
+                pgClient.query(`INSERT INTO payer_user(session_id, user_sf_id) VALUES ('${session_id}', '${payerUser.Id}')`).then((result) => {
+                    console.log(result);
+                    // res.json({session_id, userId: payerUser.Id});
                     req.login({...payerUser, session_id}, (err) => {
                         console.log(err);
-                        res.redirect('/');
                     });
-                    res.json({session_id, userId: payerUser.Id});
                 }).catch(err => {
                     console.log(err);
                     res.status(401).send('Error verifying magic link');
