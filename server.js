@@ -105,6 +105,7 @@ const transporter = nodemailer.createTransport({
     }
   });
 
+app.use(express.static(path.join(__dirname,"client", "build")));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 // app.use(cookieParser());

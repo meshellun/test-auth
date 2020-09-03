@@ -87,7 +87,7 @@ const transporter = nodemailer.createTransport({
     }
   });
 
-
+app.use(express.static(path.join(__dirname,"client", "build")));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(session({
@@ -100,14 +100,16 @@ app.use(session({
     saveUninitialized: false,
     cookie : {
         /* MDY114 SET 60 SECOND EXPIRATION DATE FOR TESTING */
-        maxAge: 60 * 1000
+        maxAge: 60 * 1000,
+        // httpOnly: true, 
+        // secure: true
     }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
 
 
-app.post('/authenticateUser', (req, res) => {
+app.post('/login', (req, res) => {
     const phone = req.body.phone;
     const username = sanitizeEmail(req.body.email);
     let payerUserQuery = 'SELECT Id, OTPSecret__c FROM PayerUser__c WHERE';
@@ -188,6 +190,7 @@ app.post('/verifyOtp', (req, res) => {
     const otpToken = req.body.otp;
     const phone = req.body.phone;
     const username = sanitizeEmail(req.body.email);
+    console.log(phone + ' ' + username); 
     if (!otpToken && (!phone || !username)) return res.status(401).send('Info Invalid');
 
     console.log(authenticator.timeRemaining());
@@ -207,8 +210,11 @@ app.post('/verifyOtp', (req, res) => {
             let payerUserQueryResult = await sfConnection.query(payerUserQuery);
             if (payerUserQueryResult.records.length === 0 ) return res.status(401).send('User not found in our system');
             let payerUser = payerUserQueryResult.records[0];
-            
+            console.log(payerUser);
+            console.log(otpToken);
+            console.log(verifyOTP(otpToken, payerUser.OTPSecret__c));
             let isValidOTP = payerUser.OTPSecret__c && verifyOTP(otpToken, payerUser.OTPSecret__c);
+            console.log('isValidOtp' + isValidOTP);
             if (!isValidOTP) {
              return res.status(401).send('invalid token');
             }
@@ -227,14 +233,14 @@ app.post('/verifyOtp', (req, res) => {
                         await req.session.save((err) => {
                             if (err) res.status(401).send(err);
                         });
-                    }
+                    };
                     console.log(result);
                     regenerateAndSaveSession().then(() => {
                         req.login({...payerUser, session_id}, function(err) {
                             if (err) { return res.status(401).send(err);}
                             res.send( session_id);
                         });
-                    })
+                    });
                 }).catch(err => {
                     console.log(err);
                     res.status(401).send('Error verifying magic link');
@@ -307,9 +313,15 @@ app.post('/guestUser', (req, res) => {
 });
 
 app.post('/signout', (req, res) => {
-    req.logout();
-    req.session.destroy();
-    res.status(200).send('successfully logged out');
+    console.log(req);
+    pgClient.query(`DELETE FROM payer_user WHERE session_id = '${req.user.session_id}'`).then(() => {
+        req.logout();
+        req.session.destroy();
+        res.status(200).send('successfully logged out');
+    }).catch(err => {
+        console.log(err);
+        res.status(400).send('error logging out');
+    });
 });
 
 passport.serializeUser((user, done) => {
@@ -322,7 +334,12 @@ passport.deserializeUser((session_id, done) => {
         done(null, result.rows[0]);
     }).catch(err => {
         done(err, false);
-    })
+    });
+});
+
+app.get('/test', (req, res) => {
+    console.log(req.isAuthenticated());
+    res.json('testing');
 });
 
 app.get("/", (req, res) => {
@@ -330,6 +347,11 @@ app.get("/", (req, res) => {
     console.log(req.isAuthenticated());
     res.json("hello world");
 });
+
+app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname + "/client/build/index.html"))
+});
+
 const port = process.env.PORT || 8000;
 
 
