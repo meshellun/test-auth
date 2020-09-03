@@ -15,6 +15,7 @@ const { v4: uuidv4 } = require('uuid');
 const session = require('express-session');
 const passport = require('passport');
 const pg = require('pg');
+const { nextTick } = require("process");
 const pgSession = require('connect-pg-simple')(session);
 const pgConnectionParams = 'postgresql://postgres:welcome@localhost';
 
@@ -223,22 +224,24 @@ app.post('/verifyOtp', (req, res) => {
                     const regenerateAndSaveSession = async () => {
                         await req.session.regenerate((err) => {
                             if (err) res.status(401).send(err);
-                        })
+                        });
+
                         await req.session.save((err) => {
                             if (err) res.status(401).send(err);
-                        })
+                        });
                     }
                     console.log(result);
-                    regenerateAndSaveSession();
-                    req.login({...payerUser, session_id}, (err) => {
-                        console.log(err);
-                    });
+                    regenerateAndSaveSession().then(() => {
+                        req.login({...payerUser, session_id}, function(err) {
+                            if (err) { return res.status(401).send(err);}
+                            res.send({...payerUser, session_id});
+                        });
+                    })
                 }).catch(err => {
                     console.log(err);
                     res.status(401).send('Error verifying magic link');
                 });
             }
-            res.end();
 
         } catch (err) {
             console.log(err);
