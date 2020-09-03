@@ -305,19 +305,11 @@ app.get("/", (req, res) => {
 passport.serializeUser((user, done) => {
     done(null, user);
 });
-passport.deserializeUser((session_id, done) => {
-    // pgClient.query(`SELECT * FROM payer_user WHERE session_id = ${session_id}`, (err, result) => {
-    //     console.log(result);
-    //     console.log(err);
-    //     let user; 
-    //     // if (result && result.rowCount > 0) {
-    //     //     user = result.rows[0];
-    //     // }
-    //     done(err, session_id);
-    // })
-    done(null, session_id);
+passport.deserializeUser((user, done) => {
+    done(null, user);
 });
 const port = process.env.PORT || 8000;
+
 
 app.listen(port, function () {
     console.log(`🌎 ==> Server now on port ${port}!`);
