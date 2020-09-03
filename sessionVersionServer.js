@@ -208,14 +208,23 @@ app.post('/verifyOtp', (req, res) => {
             if (!isValidOTP) {
              return res.status(401).send('invalid token');
             }
+
         
             if (payerUser) {
                 let session_id = uuidv4();
                 console.log(payerUser);
                 console.log('session_id ' + session_id);
                 pgClient.query(`INSERT INTO payer_user(session_id, user_sf_id) VALUES ('${session_id}', '${payerUser.Id}')`).then((result) => {
+                    const regenerateAndSaveSession = async () => {
+                        await req.session.regenerate((err) => {
+                            if (err) res.status(401).send(err);
+                        })
+                        await req.session.save((err) => {
+                            if (err) res.status(401).send(err);
+                        })
+                    }
                     console.log(result);
-                    // res.json({session_id, userId: payerUser.Id});
+                    regenerateAndSaveSession();
                     req.login({...payerUser, session_id}, (err) => {
                         console.log(err);
                     });
